@@ -8,6 +8,7 @@ from chess_ai_gym.helpers.enums import SideType
 
 if TYPE_CHECKING:
     from uuid import UUID
+    from chess import Move
 
 __all__ = [
     "Leaf"
@@ -23,7 +24,7 @@ class Leaf:
                  parent_leaf: Union['Leaf', None]):
 
         self.parent_leaf = parent_leaf
-        self.id = uuid4()
+        self.id: 'UUID' = uuid4()
         self.current_side = current_side
         self.starting_side = starting_side
 
@@ -37,10 +38,31 @@ class Leaf:
         self.number_of_legal_moves = None
         self.nodes = []
 
+    def __eq__(self, other):
+        if isinstance(other, Leaf):
+            return (
+                self.id == other.id and
+                self.parent_leaf == other.parent_leaf and
+                self.current_side == other.current_side and
+                self.starting_side == other.starting_side and
+                self.iteration == other.iteration and
+                self.wins == other.wins and
+                self.score == other.score and
+                self.board == other.board and
+                self.nodes == other.nodes
+            )
+        else:
+            raise NotImplementedError(f"Cannot compare different object type to {self.__class__.__name__}")
+
     @staticmethod
     def change_random_seed(seed: int) -> None:
         """Changing random seed."""
         random.seed(seed)
+
+    def push_move(self, move: 'Move') -> None:
+        """Push a new move into the board and change current sides."""
+        self.board.push(move=move)
+        self.current_side = SideType.WHITE if self.current_side == SideType.BLACK else SideType.BLACK
 
     def compute_legal_moves(self) -> None:
         """Set legal moves in the current position and count them."""
@@ -78,7 +100,7 @@ class Leaf:
         leafs_and_moves = [(
             Leaf(board_position=self.board.fen(),
                  starting_side=self.starting_side,
-                 current_side=SideType.WHITE if self.current_side == SideType.BLACK else SideType.BLACK,
+                 current_side=self.current_side,
                  parent_leaf=self,
                  ),
             move) for move in random.sample(self.legal_moves, k=number_of_nodes)
@@ -87,7 +109,7 @@ class Leaf:
 
         # note: pushes new positions, computes next legal moves and stores as new nodes/leafs
         for leaf, move in leafs_and_moves:
-            leaf.board.push(move)
+            leaf.push_move(move)
             leaf.compute_legal_moves()
             self.nodes.append(leaf)
         # --- end note

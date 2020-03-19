@@ -98,6 +98,54 @@ class TestLeaf(unittest.TestCase):
         self.assertEqual(leaf.current_side, SideType.WHITE if self.current_side == SideType.BLACK else SideType.BLACK,
                          msg="Wrong current side")
 
+    def test_06__increase_iteration_and_wins(self):
+        self.leaf.nodes[0].increase_iteration_and_wins(win=1)
+
+        self.assertEqual(self.leaf.iteration, 1, msg="Parent iteration is wrong.")
+        self.assertEqual(self.leaf.wins, 1, msg="Parent wins counter is wrong.")
+        self.assertEqual(self.leaf.nodes[0].iteration, 1, msg="child node iteration is wrong")
+        self.assertEqual(self.leaf.nodes[0].wins, 1, msg="child node win counter is wrong")
+
+        self.leaf.nodes[1].increase_iteration_and_wins(win=1)
+
+        self.assertEqual(self.leaf.iteration, 2, msg="Parent iteration is wrong.")
+        self.assertEqual(self.leaf.wins, 2, msg="Parent wins counter is wrong.")
+        self.assertEqual(self.leaf.nodes[1].iteration, 1, msg="child node iteration is wrong")
+        self.assertEqual(self.leaf.nodes[1].wins, 1, msg="child node win counter is wrong")
+
+        self.leaf.nodes[2].increase_iteration_and_wins(win=-1)
+
+        self.assertEqual(self.leaf.iteration, 3, msg="Parent iteration is wrong.")
+        self.assertEqual(self.leaf.wins, 1, msg="Parent wins counter is wrong.")
+        self.assertEqual(self.leaf.nodes[2].iteration, 1, msg="child node iteration is wrong")
+        self.assertEqual(self.leaf.nodes[2].wins, -1, msg="child node win counter is wrong")
+
+    def test_07__run_simulation__simulation_completed_game_is_over(self):
+        self.leaf.nodes[3].run_simulation()
+        win = self.leaf.nodes[3].wins
+
+        if win == 1:
+            self.assertEqual(self.leaf.wins, 2, msg="Parent leaf wins counted is incorrect.")
+
+        elif win == 0.5:
+            self.assertEqual(self.leaf.wins, 1.5, msg="Parent leaf wins counted is incorrect.")
+
+        else:
+            self.assertEqual(self.leaf.wins, 0, msg="Parent leaf wins counted is incorrect.")
+
+        self.assertEqual(self.leaf.iteration, 4, msg="Parent leaf iteration is incorrect.")
+        self.assertEqual(self.leaf.nodes[3].iteration, 1, msg="child node iteration is wrong")
+
+    def test_08__compare_leafs(self):
+        self.assertTrue(self.leaf == self.leaf, msg="These two leafs should be identical.")
+        self.assertFalse(self.leaf == self.leaf.nodes[0], msg="These leafs should be different.")
+
+        def try_raise(self):
+            return self.leaf == 1
+
+        with self.assertRaises(NotImplementedError, msg="We should not be able to compare leaf with other types."):
+            try_raise(self)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -16,7 +16,23 @@ __all__ = [
 
 
 class Leaf:
-    """"""
+    """
+    Leaf class for handling the behaviour of nodes for Monte Carlo Tree Search.
+
+    Parameters
+    ----------
+    board_position: str, required
+        Entire board position in FEN format, this position indicates from where this leaf will start a game.
+
+    starting_side: SideType, required
+        If we want to indicate the result, we need to have a starting side.
+
+    current_side: SideType
+        As board position cannot indicates who turn it is right now, leaf needs to know a current side [black or white]
+
+    parent_leaf: Leaf or None, required
+        A reference to the parent leaf or None if we are the root.
+    """
     def __init__(self,
                  board_position: str,
                  starting_side: 'SideType',
@@ -38,7 +54,7 @@ class Leaf:
         self.number_of_legal_moves = None
         self.nodes = []
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if isinstance(other, Leaf):
             return (
                 self.id == other.id and
@@ -52,7 +68,7 @@ class Leaf:
                 self.nodes == other.nodes
             )
         else:
-            raise NotImplementedError(f"Cannot compare different object type to {self.__class__.__name__}")
+            raise NotImplementedError(f"Cannot compare different object to {self.__class__.__name__}")
 
     @staticmethod
     def change_random_seed(seed: int) -> None:
@@ -69,10 +85,10 @@ class Leaf:
         self.legal_moves = [move for move in self.board.legal_moves]
         self.number_of_legal_moves = self.board.legal_moves.count()
 
-    def increase_iteration_and_wins(self, win: bool) -> None:
+    def increase_iteration_and_wins(self, win: float) -> None:
+        """Increase iterations, wins for self and my parent."""
         self.iteration += 1
-        if win:
-            self.wins += 1
+        self.wins += win
 
         if self.parent_leaf:
             self.parent_leaf.increase_iteration_and_wins(win=win)
@@ -114,13 +130,14 @@ class Leaf:
             self.nodes.append(leaf)
         # --- end note
 
-    def run_simulation(self):
+    def run_simulation(self) -> None:
+        """"""
         if not self.board.is_game_over():
             board = Board(starting_position=self.board.fen())
             board.turn = self.current_side.value
 
-            while not self.board.is_game_over():
-                moves = board.legal_moves
+            while not board.is_game_over():
+                moves = [move for move in board.legal_moves]
 
                 # note: this condition could be removed
                 if moves:
@@ -128,10 +145,16 @@ class Leaf:
                     board.push(move)
 
             result = board.result()     # TODO: check the sides
+
+            # note: here should be a policy! eg. win = 1, draw = 0.5, lose = -1
             if ((result == '1-0' and self.starting_side == SideType.WHITE) or
                     (result == '0-1' and self.starting_side == SideType.BLACK)):
-                self.increase_iteration_and_wins(win=True)
+                self.increase_iteration_and_wins(win=1)
+
+            elif result == '1/2-1/2':
+                self.increase_iteration_and_wins(win=0.5)
 
             else:
-                self.increase_iteration_and_wins(win=False)
+                self.increase_iteration_and_wins(win=-1)
+            # --- end note
 

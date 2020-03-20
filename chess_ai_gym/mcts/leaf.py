@@ -1,9 +1,10 @@
 import random
+import numpy as np
 from uuid import uuid4
 from typing import TYPE_CHECKING, Union
 
 from chess_ai_gym.environments.pytchon_chess import Board
-from chess_ai_gym.utils.errors import NoMoreMoves
+from chess_ai_gym.utils.errors import NoMoreMoves, NodesNotPopulated
 from chess_ai_gym.helpers.enums import SideType
 
 if TYPE_CHECKING:
@@ -13,6 +14,9 @@ if TYPE_CHECKING:
 __all__ = [
     "Leaf"
 ]
+
+# note: exploration parameter
+C = np.sqrt(2)
 
 
 class Leaf:
@@ -85,13 +89,64 @@ class Leaf:
         self.legal_moves = [move for move in self.board.legal_moves]
         self.number_of_legal_moves = self.board.legal_moves.count()
 
+    def compute_score(self) -> None:
+        """
+        This formula is not completely the same as introduced by Kocsis and Szepesvári,
+        here we are considering winning value not wins count.
+        'wi' instead of being number of wins, it is a cumulative wins score.
+
+        Main Formula
+        ------------
+
+        wi             ln(Ni)
+        -- + C * sqrt( ------ )
+        ni               ni
+
+        Where
+        -----
+        wi - stands for the value of wins for the node considered after the i-th move
+        ni - stands for the number of simulations for the node considered after the i-th move
+        Ni - stands for the total number of simulations after the i-th move run by the parent node of the one considered
+        C  - is the exploration parameter—theoretically equal to √2; in practice usually chosen empirically
+        """
+
+        self.score = self.wins / self.iteration + C * np.sqrt(np.log(self.parent_leaf.iteration) / self.iteration)
+
+    def choose_the_best_node(self) -> int:
+        """Search for the best node based on the best score."""
+        if len(self.nodes) == 0:
+            raise NodesNotPopulated(self.id, errors=["Cannot perform \"choose_the_best_node()\""])
+
+        best_score = 0
+        best_node_numbers = []
+
+        for i, node in enumerate(self.nodes):
+            # note: choose node number based on the best node score
+            if node.score > best_score:
+                best_score = node.score
+                best_node_numbers = [i]
+
+            elif node.score == best_score:
+                best_node_numbers.append(i)
+
+        return random.choice(best_node_numbers)
+
     def increase_iteration_and_wins(self, win: float) -> None:
-        """Increase iterations, wins for self and my parent."""
+        """Increase iterations, wins for self and my parent.
+
+        Parameters
+        ----------
+        win: float, required
+           Points for winning simulation, depends on a current policy.
+        """
+        if self.parent_leaf:
+            self.parent_leaf.increase_iteration_and_wins(win=win)
+
         self.iteration += 1
         self.wins += win
 
         if self.parent_leaf:
-            self.parent_leaf.increase_iteration_and_wins(win=win)
+            self.compute_score()
 
     def populate_nodes(self, generate_nodes_divider: int) -> None:
         """
@@ -131,7 +186,7 @@ class Leaf:
         # --- end note
 
     def run_simulation(self) -> None:
-        """"""
+        """Simulation part of MCTS, here we should place further policy."""
         if not self.board.is_game_over():
             board = Board(starting_position=self.board.fen())
             board.turn = self.current_side.value

@@ -3,6 +3,7 @@ import random
 import sys
 
 from chess_ai_gym.mcts.leaf import Leaf
+from chess_ai_gym.utils.errors import NodesNotPopulated
 from chess_ai_gym.helpers.enums import SideType
 from uuid import UUID
 from chess_ai_gym.environments.pytchon_chess import Board
@@ -145,6 +146,62 @@ class TestLeaf(unittest.TestCase):
 
         with self.assertRaises(NotImplementedError, msg="We should not be able to compare leaf with other types."):
             try_raise(self)
+
+    def test_09__compute_score(self):
+        leaf = Leaf(board_position=self.board_position,
+                    starting_side=self.starting_side,
+                    current_side=self.current_side,
+                    parent_leaf=None)
+        leaf.compute_legal_moves()
+        leaf.populate_nodes(1)
+        leaf.iteration = 2
+        leaf.wins = 2
+        leaf.nodes[0].iteration = 1
+        leaf.nodes[0].wins = 1
+
+        leaf.nodes[0].compute_score()
+
+        self.assertEqual(2.177410022515475, leaf.nodes[0].score, msg="Child leaf score wrongly computed.")
+
+    def test_10__choose_the_best_node(self):
+        leaf = Leaf(board_position=self.board_position,
+                    starting_side=self.starting_side,
+                    current_side=self.current_side,
+                    parent_leaf=None)
+        leaf.compute_legal_moves()
+        leaf.populate_nodes(1)
+        leaf.iteration = 3
+        leaf.wins = 1
+        leaf.nodes[0].iteration = 1
+        leaf.nodes[0].wins = 1
+        leaf.nodes[1].iteration = 1
+        leaf.nodes[1].wins = 1
+        leaf.nodes[2].iteration = 1
+        leaf.nodes[2].wins = -1
+
+        leaf.nodes[0].compute_score()
+        leaf.nodes[1].compute_score()
+        leaf.nodes[2].compute_score()
+
+        # note: earlier we used change_random_seed(), so this always be deterministic now
+        best_node_number = leaf.choose_the_best_node()
+        self.assertTrue(best_node_number == 0 or best_node_number == 1,
+                        msg="Wrong best node number, should be one of [0, 1]")
+
+        leaf.nodes[0].wins = -1
+        leaf.nodes[0].compute_score()
+
+        best_node_number = leaf.choose_the_best_node()
+        self.assertTrue(best_node_number == 1, msg="Wrong best node number, should be 1")
+
+    def test_11__choose_the_best_node__leaf_nodes_not_populated(self):
+        leaf = Leaf(board_position=self.board_position,
+                    starting_side=self.starting_side,
+                    current_side=self.current_side,
+                    parent_leaf=None)
+
+        with self.assertRaises(NodesNotPopulated):
+            leaf.choose_the_best_node()
 
 
 if __name__ == '__main__':

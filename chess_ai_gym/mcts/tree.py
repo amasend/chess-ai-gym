@@ -27,8 +27,36 @@ class Tree:
         self.root.change_random_seed(seed=self.seed)
         self.root.compute_legal_moves()
         self.root.populate_nodes(generate_nodes_divider=1)
+        for node in self.root.nodes:
+            node.run_simulation()
 
     def start_search(self) -> None:
-        pass
+
+        def recursive_path_finder(node: 'Leaf') -> 'Leaf':
+            """Fetch a leaf node by recursion."""
+            if node.nodes:
+                best_node_number = node.choose_the_best_node()
+                return recursive_path_finder(node=node.nodes[best_node_number])
+
+            else:
+                return node
+
+        while True:
+            #############
+            # SELECTING #
+            #############
+            leaf_node = recursive_path_finder(node=self.root)
+
+            #############
+            # EXPANDING #
+            #############
+            leaf_node.compute_legal_moves()
+            leaf_node.populate_nodes(generate_nodes_divider=GENERATE_NODES_DIVIDER)
+
+            ########################
+            # SIMULATING/EXPLORING #
+            ########################
+            for node in leaf_node.nodes:
+                node.run_simulation()
 
 

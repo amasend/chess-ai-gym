@@ -1,2 +1,4 @@
+networkx
 async-lichess-sdk
 numpy
+pygraphviz

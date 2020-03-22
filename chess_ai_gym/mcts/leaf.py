@@ -37,6 +37,7 @@ class Leaf:
     parent_leaf: Leaf or None, required
         A reference to the parent leaf or None if we are the root.
     """
+
     def __init__(self,
                  board_position: str,
                  starting_side: 'SideType',
@@ -63,15 +64,15 @@ class Leaf:
     def __eq__(self, other) -> bool:
         if isinstance(other, Leaf):
             return (
-                self.id == other.id and
-                self.parent_leaf == other.parent_leaf and
-                self.current_side == other.current_side and
-                self.starting_side == other.starting_side and
-                self.iteration == other.iteration and
-                self.wins == other.wins and
-                self.score == other.score and
-                self.board == other.board and
-                self.nodes == other.nodes
+                    self.id == other.id and
+                    self.parent_leaf == other.parent_leaf and
+                    self.current_side == other.current_side and
+                    self.starting_side == other.starting_side and
+                    self.iteration == other.iteration and
+                    self.wins == other.wins and
+                    self.score == other.score and
+                    self.board == other.board and
+                    self.nodes == other.nodes
             )
         else:
             raise NotImplementedError(f"Cannot compare different object to {self.__class__.__name__}")
@@ -119,7 +120,7 @@ class Leaf:
         if len(self.nodes) == 0:
             raise NodesNotPopulated(self.id, errors=["Cannot perform \"choose_the_best_node()\""])
 
-        best_score = 0
+        best_score = self.nodes[0].score
         best_node_numbers = []
 
         for i, node in enumerate(self.nodes):
@@ -209,7 +210,7 @@ class Leaf:
                     move = random.choice(moves)
                     board.push(move)
 
-            result = board.result()     # TODO: check the sides
+            result = board.result()  # TODO: check the sides
 
             # note: here should be a policy! eg. win = 1, draw = 0.5, lose = -1
             if ((result == '1-0' and self.starting_side == SideType.WHITE) or
@@ -217,7 +218,7 @@ class Leaf:
                 self.increase_iteration_and_wins(win=1)
 
             elif result == '1/2-1/2':
-                self.increase_iteration_and_wins(win=0.5)
+                self.increase_iteration_and_wins(win=-0.5)
 
             else:
                 self.increase_iteration_and_wins(win=-1)
@@ -226,6 +227,7 @@ class Leaf:
 
 class GraphicalLeaf:
     """GraphicalLeaf class is dedicated to use with a networkx package as an additional data storage for nodes."""
+
     def __init__(self):
         self.iteration = 0
         self.wins = 0

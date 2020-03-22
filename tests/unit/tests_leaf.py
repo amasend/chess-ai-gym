@@ -128,8 +128,8 @@ class TestLeaf(unittest.TestCase):
         if win == 1:
             self.assertEqual(self.leaf.wins, 2, msg="Parent leaf wins counted is incorrect.")
 
-        elif win == 0.5:
-            self.assertEqual(self.leaf.wins, 1.5, msg="Parent leaf wins counted is incorrect.")
+        elif win == -0.5:
+            self.assertEqual(self.leaf.wins, 0.5, msg="Parent leaf wins counted is incorrect.")
 
         else:
             self.assertEqual(self.leaf.wins, 0, msg="Parent leaf wins counted is incorrect.")

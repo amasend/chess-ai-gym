@@ -1,14 +1,13 @@
+import pickle
+import time
 from typing import TYPE_CHECKING
-from time import sleep
 
 from .leaf import Leaf
 
 from IPython.display import clear_output
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
 import networkx as nx
 from networkx.drawing.nx_agraph import graphviz_layout
-
 
 if TYPE_CHECKING:
     from chess_ai_gym.helpers.enums import SideType
@@ -22,7 +21,7 @@ GENERATE_NODES_DIVIDER = 1
 
 
 class Tree:
-    def __init__(self, seed: int, starting_side: 'SideType', visualize: 'bool' = False):
+    def __init__(self, starting_side: 'SideType', seed: int = None, visualize: 'bool' = False):
         self.visualize = visualize
         self.seed = seed
         self.starting_side = starting_side
@@ -33,16 +32,12 @@ class Tree:
         self.root: 'Leaf' = Leaf(board_position=STARTING_BOARD_POSITION, starting_side=starting_side,
                                  current_side=starting_side, parent_leaf=None)
         self.root.id = 0
-        self.root.change_random_seed(seed=self.seed)
-        self.root.compute_legal_moves()
-        self.root.populate_nodes(generate_nodes_divider=GENERATE_NODES_DIVIDER)
-        for node in self.root.nodes:
-            node.run_simulation()
+        if self.seed is not None:
+            self.root.change_random_seed(seed=self.seed)
 
-        if self.visualize:
-            self.graph = nx.DiGraph()
-            self.graph.add_node(self.root.id, data=self.root.graphical_leaf)
-            self._add_nodes_to_graph(node=self.root)
+        self.graph = nx.DiGraph()
+        self.graph.add_node(self.root.id, data=self.root.graphical_leaf)
+        # self._add_nodes_to_graph(node=self.root)
 
     def _add_nodes_to_graph(self, node: 'Leaf') -> None:
         """
@@ -66,6 +61,11 @@ class Tree:
         nx.draw(self.graph, pos, with_labels=True, arrows=True, labels=labels, node_size=1000)
         plt.show()
 
+    def save(self) -> None:
+        """Try to save this tree as a pickle file."""
+        pickle.dump(self, open("mcts_tree.pickle", "wb"))
+        print(f"Tree saved after {self.root.iteration} iterations.")
+
     def start_search(self) -> None:
         """Start a MCTS process."""
 
@@ -78,25 +78,39 @@ class Tree:
             else:
                 return node
 
+        start_time = time.time()
         while True:
             #############
             # SELECTING #
             #############
             leaf_node = recursive_path_finder(node=self.root)
 
-            #############
-            # EXPANDING #
-            #############
-            leaf_node.compute_legal_moves()
-            leaf_node.populate_nodes(generate_nodes_divider=GENERATE_NODES_DIVIDER)
+            if leaf_node.iteration == 0:
+                # note: perform a simulation when we are on a leaf node but not simulated yet
+                leaf_node.run_simulation()
 
-            ########################
-            # SIMULATING/EXPLORING #
-            ########################
-            for node in leaf_node.nodes:
-                node.run_simulation()
-
-            # note: populating a graph
-            if self.visualize:
+            else:
+                #############
+                # EXPANDING #
+                #############
+                # note: add available actions to the tree
+                leaf_node.compute_legal_moves()
+                leaf_node.populate_nodes(generate_nodes_divider=GENERATE_NODES_DIVIDER)
+                # --- end note
+                # note: populating a graph to draw
                 self._add_nodes_to_graph(node=leaf_node)
+
+                ########################
+                # SIMULATING/EXPLORING #
+                ########################
+                # note: take first child node and perform a simulation
+                node_to_simulate = leaf_node.nodes[0]
+                node_to_simulate.run_simulation()
+                # --- end note
+
+            if self.visualize:
                 self._show_graph()
+
+            if time.time() - start_time > 60:
+                self.save()
+                start_time = time.time()

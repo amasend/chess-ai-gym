@@ -19,6 +19,23 @@ sudo apt-get install libcairomm-1.0
 
 pip install pycairo
 sudo apt-get install libsparsehash-dev
+sudo apt install python3-gi gobject-introspection gir1.2-gtk-3.0
+sudo apt-get install libgtk-3-dev
+
+https://download.gnome.org/sources/gtk+/3.0/
+https://developer.gnome.org/gtk3/stable/gtk-building.html
+
+
+gtk needs Glib >= version
+here meson and ninja is needed
+glib needs mount: sudo apt-get install libmount-dev
+meson: https://mesonbuild.com/Getting-meson.html : here you should open meson from directory: path_to_meson/meson.py _build eg: ../meson-0.53.2/meson.py _build
+ninja -C _build
+sudo ninja -C _build install
+
+pango > 1.41
+https://download.gnome.org/sources/pango/1.42/
+you need to install sudo apt install libfribidi-dev
 
 1. `cd' to the directory containing the package's source code and type
      `./configure' to configure the package for your system.  If you're

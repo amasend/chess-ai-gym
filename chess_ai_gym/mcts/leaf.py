@@ -7,6 +7,7 @@ from chess_ai_gym.environments.pytchon_chess import Board
 from chess_ai_gym.utils.errors import NoMoreMoves, NodesNotPopulated
 from chess_ai_gym.helpers.enums import SideType
 
+
 if TYPE_CHECKING:
     from uuid import UUID
     from chess import Move
@@ -42,7 +43,7 @@ class Leaf:
                  board_position: str,
                  starting_side: 'SideType',
                  current_side: 'SideType',
-                 parent_leaf: Union['Leaf', None]):
+                 parent_leaf: Union['Leaf', None]) -> None:
 
         self.parent_leaf = parent_leaf
         self.id: 'UUID' = uuid4()
@@ -53,8 +54,9 @@ class Leaf:
         self.wins = 0
         self.score = 0
 
-        self.graphical_leaf = GraphicalLeaf()
-
+        #########
+        # Board #
+        #########
         self.board = Board(starting_position=board_position)
         self.board.turn = current_side.value
         self.legal_moves = None
@@ -151,11 +153,6 @@ class Leaf:
         if self.parent_leaf:
             self.compute_score()
 
-        # note: this part could be omitted when user do not want to draw a graph representation of the search
-        self.graphical_leaf.iteration = self.iteration
-        self.graphical_leaf.wins = self.wins
-        self.graphical_leaf.score = self.score
-
     def populate_nodes(self, generate_nodes_divider: int) -> None:
         """
         Create new leafs based on a current board position.
@@ -183,7 +180,7 @@ class Leaf:
             Leaf(board_position=self.board.fen(),
                  starting_side=self.starting_side,
                  current_side=self.current_side,
-                 parent_leaf=self,
+                 parent_leaf=self
                  ),
             move) for move in random.sample(self.legal_moves, k=number_of_nodes)
         ]
@@ -223,15 +220,3 @@ class Leaf:
             else:
                 self.increase_iteration_and_wins(win=-1)
             # --- end note
-
-
-class GraphicalLeaf:
-    """GraphicalLeaf class is dedicated to use with a networkx package as an additional data storage for nodes."""
-
-    def __init__(self):
-        self.iteration = 0
-        self.wins = 0
-        self.score = 0
-
-    def __str__(self):
-        return f"{self.iteration}/{round(self.score, 2)}"

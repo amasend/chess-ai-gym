@@ -21,10 +21,8 @@ setuptools.setup(
     long_description_content_type='text/markdown',
     install_requires=[
         'async-lichess-sdk',
-        'numpy',
-        'networkx',
-        'pygraphviz',
-        'scipy'
+        'numpy>=1.18.2',
+        'scipy>=1.4.1'
     ],
     url="https://github.com/amasend/chess-ai-gym",
     packages=setuptools.find_packages(exclude=["tests"]),

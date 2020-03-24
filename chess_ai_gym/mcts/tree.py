@@ -5,11 +5,10 @@ from typing import TYPE_CHECKING
 from .leaf import Leaf
 
 from IPython.display import clear_output
-import matplotlib.pyplot as plt
-import networkx as nx
-from networkx.drawing.nx_agraph import graphviz_layout
+from graph_tool.all import Graph, graph_draw, radial_tree_layout, sfdp_layout, fruchterman_reingold_layout, arf_layout
 
 if TYPE_CHECKING:
+    from graph_tool import VertexPropertyMap
     from chess_ai_gym.helpers.enums import SideType
 
 __all__ = [
@@ -21,8 +20,7 @@ GENERATE_NODES_DIVIDER = 1
 
 
 class Tree:
-    def __init__(self, starting_side: 'SideType', seed: int = None, visualize: 'bool' = False):
-        self.visualize = visualize
+    def __init__(self, starting_side: 'SideType', seed: int = None):
         self.seed = seed
         self.starting_side = starting_side
 
@@ -35,31 +33,31 @@ class Tree:
         if self.seed is not None:
             self.root.change_random_seed(seed=self.seed)
 
-        self.graph = nx.DiGraph()
-        self.graph.add_node(self.root.id, data=self.root.graphical_leaf)
-        # self._add_nodes_to_graph(node=self.root)
+    def visualize(self):
+        def explore_tree(node: 'Leaf', graph: 'Graph', vprop: 'VertexPropertyMap') -> None:
+            vertex = graph.add_vertex()
+            vprop[vertex] = f"{node.iteration}/{node.score}"
+            for leaf in node.nodes:
+                leaf_vertex = graph.add_vertex()
+                vprop[vertex] = f"{leaf.iteration}/{leaf.score}"
+                graph.add_edge(vertex, leaf_vertex)
+                explore_tree(node=leaf, graph=graph, vprop=vprop)
 
-    def _add_nodes_to_graph(self, node: 'Leaf') -> None:
-        """
-        Add a graphical representation of that node to a networkx graph.
+        g = Graph()
+        vprop = g.new_vertex_property('string')
+        explore_tree(node=self.root, graph=g, vprop=vprop)
+        graph_draw(g, vertex_text=vprop)
 
-        Parameters
-        ----------
-        node: Leaf, required
-            A node what you want to add to a graphical representation.
-        """
-        for leaf in node.nodes:
-            self.graph.add_node(leaf.id, data=leaf.graphical_leaf)
-            self.graph.add_edge(node.id, leaf.id)
 
-    def _show_graph(self) -> None:
-        """Draw a full tree representation at a given time."""
-        labels = nx.get_node_attributes(self.graph, 'data')
-        pos = graphviz_layout(self.graph, prog='dot')
-        clear_output(wait=True)
-        plt.figure(figsize=(30, 30))
-        nx.draw(self.graph, pos, with_labels=True, arrows=True, labels=labels, node_size=1000)
-        plt.show()
+    # def _show_graph(self) -> None:
+    #     """Draw a full tree representation at a given time."""
+    #     clear_output(wait=True)
+    #     pos = radial_tree_layout(self.graph, self.root.vertex, node_weight=self.vprop)
+    #     # pos = sfdp_layout(self.graph)
+    #     # pos = fruchterman_reingold_layout(self.graph)
+    #     # pos = arf_layout(self.graph)
+    #     graph_draw(self.graph, pos=pos, vertex_text=self.vprop)
+    #     time.sleep(3)
 
     def save(self) -> None:
         """Try to save this tree as a pickle file."""
@@ -97,8 +95,9 @@ class Tree:
                 leaf_node.compute_legal_moves()
                 leaf_node.populate_nodes(generate_nodes_divider=GENERATE_NODES_DIVIDER)
                 # --- end note
+
                 # note: populating a graph to draw
-                self._add_nodes_to_graph(node=leaf_node)
+                # self._add_nodes_to_graph(node=leaf_node)
 
                 ########################
                 # SIMULATING/EXPLORING #
@@ -107,9 +106,6 @@ class Tree:
                 node_to_simulate = leaf_node.nodes[0]
                 node_to_simulate.run_simulation()
                 # --- end note
-
-            if self.visualize:
-                self._show_graph()
 
             if time.time() - start_time > 60:
                 self.save()

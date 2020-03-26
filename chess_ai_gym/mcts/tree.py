@@ -1,14 +1,12 @@
 import pickle
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 from .leaf import Leaf
 
-from IPython.display import clear_output
-from graph_tool.all import Graph, graph_draw, radial_tree_layout, sfdp_layout, fruchterman_reingold_layout, arf_layout
+from graph_tool.all import Graph, graph_draw, radial_tree_layout
 
 if TYPE_CHECKING:
-    from graph_tool import VertexPropertyMap
     from chess_ai_gym.helpers.enums import SideType
 
 __all__ = [
@@ -34,30 +32,20 @@ class Tree:
             self.root.change_random_seed(seed=self.seed)
 
     def visualize(self):
-        def explore_tree(node: 'Leaf', graph: 'Graph', vprop: 'VertexPropertyMap') -> None:
-            vertex = graph.add_vertex()
-            vprop[vertex] = f"{node.iteration}/{node.score}"
-            for leaf in node.nodes:
-                leaf_vertex = graph.add_vertex()
-                vprop[vertex] = f"{leaf.iteration}/{leaf.score}"
-                graph.add_edge(vertex, leaf_vertex)
-                explore_tree(node=leaf, graph=graph, vprop=vprop)
+        def explore_tree(nodes: 'List[Leaf]', parent) -> None:
+            vertexes = []
+            for node in nodes:
+                vertexes.append(graph.add_vertex())
+                graph.add_edge(parent, vertexes[-1])
 
-        g = Graph()
-        vprop = g.new_vertex_property('string')
-        explore_tree(node=self.root, graph=g, vprop=vprop)
-        graph_draw(g, vertex_text=vprop)
+            for node, vertex in zip(nodes, vertexes):
+                explore_tree(node.nodes, vertex)
 
-
-    # def _show_graph(self) -> None:
-    #     """Draw a full tree representation at a given time."""
-    #     clear_output(wait=True)
-    #     pos = radial_tree_layout(self.graph, self.root.vertex, node_weight=self.vprop)
-    #     # pos = sfdp_layout(self.graph)
-    #     # pos = fruchterman_reingold_layout(self.graph)
-    #     # pos = arf_layout(self.graph)
-    #     graph_draw(self.graph, pos=pos, vertex_text=self.vprop)
-    #     time.sleep(3)
+        graph = Graph()
+        parent_vertex = graph.add_vertex()
+        explore_tree(nodes=self.root.nodes, parent=parent_vertex)
+        pos = radial_tree_layout(graph, parent_vertex)
+        graph_draw(graph, pos=pos, output="graph.pdf")
 
     def save(self) -> None:
         """Try to save this tree as a pickle file."""
@@ -107,6 +95,6 @@ class Tree:
                 node_to_simulate.run_simulation()
                 # --- end note
 
-            if time.time() - start_time > 60:
+            if time.time() - start_time > 6:
                 self.save()
                 start_time = time.time()
